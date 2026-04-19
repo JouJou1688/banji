@@ -1,0 +1,1700 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>班级成长探险岛 🏝️</title>
+    
+    <!-- Vue 3 CDN -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    
+    <!-- Vant 4 CDN -->
+    <link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/vant@4/lib/index.css" />
+    <script src="https://fastly.jsdelivr.net/npm/vant@4/lib/vant.min.js"></script>
+    
+    <!-- Axios CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #e0f7fa 0%, #fff9c4 50%, #e1f5fe 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .app-container {
+            max-width: 750px;
+            margin: 0 auto;
+            padding: 16px;
+            position: relative;
+        }
+        
+        /* 水印样式 */
+        .watermark {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            font-size: 12px;
+            color: rgba(0, 0, 0, 0.15);
+            pointer-events: none;
+            z-index: 9999;
+            user-select: none;
+        }
+        
+        /* 页面标题 */
+        .page-title {
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        /* 卡片样式 */
+        .cute-card {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            transition: transform 0.2s;
+        }
+        
+        .cute-card:hover {
+            transform: translateY(-2px);
+        }
+        
+        /* 按钮样式 */
+        .cute-btn {
+            border-radius: 25px !important;
+            font-weight: bold;
+            transition: all 0.3s !important;
+        }
+        
+        .cute-btn:active {
+            transform: scale(0.95);
+        }
+        
+        /* 星星动画 */
+        @keyframes starFloat {
+            0% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-100px) scale(1.5);
+            }
+        }
+        
+        .star-animation {
+            position: fixed;
+            font-size: 30px;
+            animation: starFloat 1.5s ease-out forwards;
+            pointer-events: none;
+            z-index: 1000;
+        }
+        
+        /* 升级动画 */
+        @keyframes levelUp {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.2);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+        
+        .level-up-animation {
+            animation: levelUp 0.6s ease-in-out;
+        }
+        
+        /* 萌宠头像 */
+        .pet-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        /* 进度条样式 */
+        .island-progress {
+            height: 30px;
+            border-radius: 15px;
+            background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .island-progress::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        
+        /* 队伍标识 */
+        .team-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+        
+        .team-sun { background: #fff3cd; color: #856404; }
+        .team-moon { background: #d1ecf1; color: #0c5460; }
+        .team-star { background: #f8d7da; color: #721c24; }
+        
+        /* 列表项样式 */
+        .student-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            border-radius: 15px;
+            margin-bottom: 8px;
+            background: #f8f9fa;
+            transition: all 0.2s;
+        }
+        
+        .student-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+        
+        .student-info {
+            flex: 1;
+            margin-left: 12px;
+        }
+        
+        .student-name {
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 16px;
+        }
+        
+        .student-level {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 2px;
+        }
+        
+        .stars-count {
+            display: flex;
+            align-items: center;
+            color: #ffc107;
+            font-weight: bold;
+            margin-right: 12px;
+        }
+        
+        /* 标签样式 */
+        .behavior-tag {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 15px;
+            margin: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        
+        .behavior-tag:hover {
+            background: #bbdefb;
+            transform: scale(1.05);
+        }
+        
+        .behavior-tag.selected {
+            background: #1976d2;
+            color: white;
+        }
+        
+        /* 导航栏 */
+        .nav-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 8px 0;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            z-index: 100;
+        }
+        
+        .nav-items {
+            display: flex;
+            justify-content: space-around;
+            max-width: 750px;
+            margin: 0 auto;
+        }
+        
+        .nav-item {
+            text-align: center;
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-radius: 10px;
+        }
+        
+        .nav-item.active {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        
+        .nav-icon {
+            font-size: 20px;
+            margin-bottom: 4px;
+        }
+        
+        .nav-text {
+            font-size: 12px;
+        }
+        
+        /* 内容区域 */
+        .content-area {
+            padding-bottom: 80px;
+        }
+        
+        /* 登录页面 */
+        .login-page {
+            text-align: center;
+            padding: 40px 20px;
+        }
+        
+        .login-logo {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+        
+        .login-title {
+            font-size: 28px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .login-subtitle {
+            color: #6c757d;
+            margin-bottom: 30px;
+        }
+        
+        /* 日报样式 */
+        .daily-report {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+        
+        .report-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .report-item {
+            margin-bottom: 12px;
+            padding: 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+        }
+        
+        .report-label {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+        
+        .report-content {
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        /* 响应式调整 */
+        @media (max-width: 480px) {
+            .app-container {
+                padding: 12px;
+            }
+            
+            .page-title {
+                font-size: 20px;
+            }
+            
+            .cute-card {
+                padding: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="app-container">
+            <!-- 水印 -->
+            <div class="watermark">成长老周Vfa1081081688</div>
+            
+            <!-- 登录页面 -->
+            <div v-if="currentPage === 'login'" class="login-page">
+                <div class="login-logo">🏝️</div>
+                <h1 class="login-title">班级成长探险岛</h1>
+                <p class="login-subtitle">让每个孩子都闪闪发光 ✨</p>
+                
+                <van-button 
+                    type="primary" 
+                    size="large" 
+                    class="cute-btn"
+                    @click="enterDemo"
+                    style="margin-bottom: 12px;"
+                >
+                    🎮 进入演示版
+                </van-button>
+                
+                <van-button 
+                    type="default" 
+                    size="large" 
+                    class="cute-btn"
+                    @click="showLogin = true"
+                >
+                    👤 教师登录
+                </van-button>
+                
+                <div style="margin-top: 30px; font-size: 14px; color: #6c757d;">
+                    <p>🌟 只奖励、不扣分、全正向激励</p>
+                    <p>🦁 萌宠进化 + 海岛建设 + 小组PK</p>
+                    <p>💖 让孩子主动争着表现</p>
+                </div>
+            </div>
+            
+            <!-- 主应用内容 -->
+            <div v-else class="content-area">
+                <!-- 首页 - 探险日报 -->
+                <div v-if="currentPage === 'home'">
+                    <h2 class="page-title">🏝️ 今日探险日报</h2>
+                    
+                    <!-- 每日报告 -->
+                    <div class="daily-report">
+                        <div class="report-title">📅 {{ currentDate }} 探险指南</div>
+                        
+                        <div class="report-item">
+                            <div class="report-label">🎯 今日探险口号</div>
+                            <div class="report-content">{{ dailySlogan }}</div>
+                        </div>
+                        
+                        <div class="report-item">
+                            <div class="report-label">⭐ 今日小探险任务</div>
+                            <div class="report-content">
+                                <div v-for="(task, index) in dailyTasks" :key="index" style="margin-bottom: 5px;">
+                                    {{ index + 1 }}. {{ task }}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="report-item">
+                            <div class="report-label">🏝️ 班级海岛建设进度</div>
+                            <div class="report-content">
+                                <div style="margin-bottom: 8px;">{{ islandProgress }}%</div>
+                                <div class="island-progress" style="background: rgba(255,255,255,0.3);">
+                                    <div 
+                                        class="island-progress" 
+                                        :style="{ width: islandProgress + '%', background: 'linear-gradient(90deg, #4facfe 0%, #00f2fe 100%)' }"
+                                    ></div>
+                                </div>
+                                <div style="margin-top: 5px; font-size: 14px;">{{ islandStage }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 快速操作 -->
+                    <div class="cute-card">
+                        <h3 style="margin-bottom: 15px; color: #2c3e50;">⚡ 快速操作</h3>
+                        <van-grid :column-num="2" :gutter="10">
+                            <van-grid-item @click="currentPage = 'checkin'">
+                                <div style="font-size: 30px; margin-bottom: 8px;">⭐</div>
+                                <div>一键加星</div>
+                            </van-grid-item>
+                            <van-grid-item @click="currentPage = 'students'">
+                                <div style="font-size: 30px; margin-bottom: 8px;">🦁</div>
+                                <div>萌宠队员</div>
+                            </van-grid-item>
+                            <van-grid-item @click="generateComment">
+                                <div style="font-size: 30px; margin-bottom: 8px;">💬</div>
+                                <div>鼓励评语</div>
+                            </van-grid-item>
+                            <van-grid-item @click="currentPage = 'dashboard'">
+                                <div style="font-size: 30px; margin-bottom: 8px;">📊</div>
+                                <div>星光看板</div>
+                            </van-grid-item>
+                        </van-grid>
+                    </div>
+                    
+                    <!-- 课堂小游戏 -->
+                    <div class="cute-card">
+                        <h3 style="margin-bottom: 15px; color: #2c3e50;">🎮 1分钟课堂探险游戏</h3>
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 10px;">
+                            <div style="font-weight: bold; color: #2c3e50; margin-bottom: 8px;">{{ currentGame.name }}</div>
+                            <div style="color: #6c757d; font-size: 14px;">{{ currentGame.description }}</div>
+                        </div>
+                        <van-button 
+                            type="primary" 
+                            size="small" 
+                            class="cute-btn"
+                            @click="refreshGame"
+                        >
+                            🔄 换一个游戏
+                        </van-button>
+                    </div>
+                    
+                    <!-- 温柔引导话术 -->
+                    <div class="cute-card">
+                        <h3 style="margin-bottom: 15px; color: #2c3e50;">💝 温柔引导话术</h3>
+                        <div style="background: #fff3cd; padding: 15px; border-radius: 10px; margin-bottom: 10px;">
+                            <div style="font-size: 14px; color: #856404; line-height: 1.6;">
+                                {{ gentleGuidance }}
+                            </div>
+                        </div>
+                        <van-button 
+                            type="warning" 
+                            size="small" 
+                            class="cute-btn"
+                            @click="copyToClipboard(gentleGuidance)"
+                        >
+                            📋 复制话术
+                        </van-button>
+                    </div>
+                    
+                    <!-- 家园共育短句 -->
+                    <div class="cute-card">
+                        <h3 style="margin-bottom: 15px; color: #2c3e50;">👨‍👩‍👧‍👦 家园共育短句</h3>
+                        <div style="background: #d1ecf1; padding: 15px; border-radius: 10px; margin-bottom: 10px;">
+                            <div style="font-size: 14px; color: #0c5460; line-height: 1.6;">
+                                {{ homeSchoolMessage }}
+                            </div>
+                        </div>
+                        <van-button 
+                            type="info" 
+                            size="small" 
+                            class="cute-btn"
+                            @click="copyToClipboard(homeSchoolMessage)"
+                        >
+                            📋 复制发群
+                        </van-button>
+                    </div>
+                </div>
+                
+                <!-- 学生列表页面 -->
+                <div v-if="currentPage === 'students'">
+                    <h2 class="page-title">🦁 萌宠队员列表</h2>
+                    
+                    <!-- 添加学生按钮 -->
+                    <div class="cute-card" v-if="!isPro && students.length >= 25">
+                        <van-notice-bar 
+                            left-icon="volume-o" 
+                            text="演示版最多支持25名幼儿，升级专业版解锁无限人数"
+                        />
+                    </div>
+                    
+                    <div class="cute-card">
+                        <van-button 
+                            type="primary" 
+                            block 
+                            class="cute-btn"
+                            @click="showAddStudent = true"
+                            style="margin-bottom: 15px;"
+                        >
+                            ➕ 添加新队员
+                        </van-button>
+                        
+                        <van-button 
+                            type="success" 
+                            block 
+                            class="cute-btn"
+                            @click="showBatchImport = true"
+                        >
+                            📋 批量导入名单
+                        </van-button>
+                    </div>
+                    
+                    <!-- 学生列表 -->
+                    <div class="cute-card">
+                        <div v-for="student in sortedStudents" :key="student.id" class="student-item">
+                            <div class="pet-avatar" :class="{ 'level-up-animation': student.justLeveledUp }">
+                                {{ student.petEmoji }}
+                            </div>
+                            
+                            <div class="student-info">
+                                <div class="student-name">{{ student.name }}</div>
+                                <div class="student-level">
+                                    {{ student.levelName }} · {{ student.stars }}⭐
+                                </div>
+                                <div style="margin-top: 4px;">
+                                    <span class="team-badge" :class="'team-' + student.team">
+                                        {{ getTeamName(student.team) }}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div class="stars-count">
+                                <span>{{ student.stars }}</span>
+                                <span style="margin-left: 2px;">⭐</span>
+                            </div>
+                            
+                            <van-button 
+                                type="primary" 
+                                size="small" 
+                                class="cute-btn"
+                                @click="quickAddStar(student)"
+                            >
+                                +⭐
+                            </van-button>
+                        </div>
+                        
+                        <div v-if="students.length === 0" style="text-align: center; padding: 40px; color: #6c757d;">
+                            <div style="font-size: 50px; margin-bottom: 15px;">🏝️</div>
+                            <div>还没有萌宠队员哦～</div>
+                            <div style="font-size: 14px; margin-top: 8px;">快添加你的第一批小探险家吧！</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 一键打卡页面 -->
+                <div v-if="currentPage === 'checkin'">
+                    <h2 class="page-title">⭐ 一键加星打卡</h2>
+                    
+                    <!-- 全班加星 -->
+                    <div class="cute-card">
+                        <h3 style="margin-bottom: 15px; color: #2c3e50;">🎉 全班庆祝时刻</h3>
+                        <van-button 
+                            type="danger" 
+                            block 
+                            size="large" 
+                            class="cute-btn"
+                            @click="addAllStars"
+                            style="margin-bottom: 10px;"
+                        >
+                            🌟 全班每人+1星
+                        </van-button>
+                        <div style="font-size: 14px; color: #6c757d; text-align: center;">
+                            适合全班表现优秀时使用，触发集体庆祝特效！
+                        </div>
+                    </div>
+                    
+                    <!-- 个人加星 -->
+                    <div class="cute-card">
+                        <h3 style="margin-bottom: 15px; color: #2c3e50;">👤 个人加星</h3>
+                        
+                        <!-- 选择学生 -->
+                        <van-field
+                            v-model="selectedStudentName"
+                            is-link
+                            readonly
+                            label="选择队员"
+                            placeholder="点击选择队员"
+                            @click="showStudentPicker = true"
+                        />
+                        
+                        <!-- 行为标签 -->
+                        <div style="margin: 15px 0;">
+                            <div style="font-weight: bold; margin-bottom: 10px; color: #2c3e50;">选择好习惯行为：</div>
+                            <div style="display: flex; flex-wrap: wrap;">
+                                <div 
+                                    v-for="behavior in behaviors" 
+                                    :key="behavior"
+                                    class="behavior-tag"
+                                    :class="{ selected: selectedBehavior === behavior }"
+                                    @click="selectedBehavior = behavior"
+                                >
+                                    {{ behavior }}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <van-button 
+                            type="primary" 
+                            block 
+                            size="large" 
+                            class="cute-btn"
+                            @click="addSingleStar"
+                            :disabled="!selectedStudent || !selectedBehavior"
+                        >
+                            ⭐ 点亮星星
+                        </van-button>
+                    </div>
+                    
+                    <!-- 最近记录 -->
+                    <div class="cute-card">
+                        <h3 style="margin-bottom: 15px; color: #2c3e50;">📝 最近加星记录</h3>
+                        <div v-for="record in recentRecords.slice(0, 5)" :key="record.id" 
+                             style="padding: 8px 0; border-bottom: 1px solid #f0f0f0;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <span style="font-weight: bold;">{{ record.studentName }}</span>
+                                    <span style="color: #6c757d; margin-left: 8px;">{{ record.behavior }}</span>
+                                </div>
+                                <div style="color: #ffc107;">+1⭐</div>
+                            </div>
+                            <div style="font-size: 12px; color: #999; margin-top: 2px;">
+                                {{ formatTime(record.timestamp) }}
+                            </div>
+                        </div>
+                        <div v-if="recentRecords.length === 0" style="text-align: center; color: #6c757d; padding: 20px;">
+                            暂无加星记录
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 评语生成器页面 -->
+                <div v-if="currentPage === 'comments'">
+                    <h2 class="page-title">💬 AI鼓励评语生成器</h2>
+                    
+                    <div class="cute-card">
+                        <!-- 选择学生 -->
+                        <van-field
+                            v-model="commentStudentName"
+                            is-link
+                            readonly
+                            label="选择队员"
+                            placeholder="点击选择队员"
+                            @click="showCommentStudentPicker = true"
+                        />
+                        
+                        <!-- 选择行为 -->
+                        <van-field
+                            v-model="commentBehavior"
+                            is-link
+                            readonly
+                            label="选择行为"
+                            placeholder="点击选择行为"
+                            @click="showCommentBehaviorPicker = true"
+                        />
+                        
+                        <van-button 
+                            type="primary" 
+                            block 
+                            class="cute-btn"
+                            @click="generateAIGComment"
+                            :disabled="!commentStudent || !commentBehavior"
+                            style="margin-top: 15px;"
+                        >
+                            ✨ 生成可爱评语
+                        </van-button>
+                    </div>
+                    
+                    <!-- 生成的评语 -->
+                    <div v-if="generatedComment" class="cute-card">
+                        <h3 style="margin-bottom: 15px; color: #2c3e50;">🎯 生成的评语</h3>
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 10px; margin-bottom: 15px; line-height: 1.6;">
+                            {{ generatedComment }}
+                        </div>
+                        
+                        <van-button 
+                            type="success" 
+                            block 
+                            class="cute-btn"
+                            @click="copyToClipboard(generatedComment)"
+                            style="margin-bottom: 10px;"
+                        >
+                            📋 复制评语
+                        </van-button>
+                        
+                        <van-button 
+                            type="warning" 
+                            block 
+                            class="cute-btn"
+                            @click="regenerateComment"
+                        >
+                            🔄 重新生成
+                        </van-button>
+                    </div>
+                    
+                    <!-- 评语模板 -->
+                    <div class="cute-card">
+                        <h3 style="margin-bottom: 15px; color: #2c3e50;">📚 评语模板库</h3>
+                        <div v-for="(template, index) in commentTemplates.slice(0, 5)" :key="index"
+                             style="padding: 10px; margin-bottom: 8px; background: #f8f9fa; border-radius: 8px; font-size: 14px;">
+                            {{ template }}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 数据看板页面 -->
+                <div v-if="currentPage === 'dashboard'">
+                    <h2 class="page-title">📊 班级星光看板</h2>
+                    
+                    <!-- 今日统计 -->
+                    <div class="cute-card">
+                        <h3 style="margin-bottom: 15px; color: #2c3e50;">📈 今日统计</h3>
+                        <van-grid :column-num="2" :gutter="10">
+                            <van-grid-item>
+                                <div style="font-size: 24px; font-weight: bold; color: #ffc107;">{{ todayTotalStars }}</div>
+                                <div style="font-size: 14px; color: #6c757d;">今日星星总数</div>
+                            </van-grid-item>
+                            <van-grid-item>
+                                <div style="font-size: 24px; font-weight: bold; color: #4facfe;">{{ students.length }}</div>
+                                <div style="font-size: 14px; color: #6c757d;">萌宠队员数</div>
+                            </van-grid-item>
+                        </van-grid>
+                    </div>
+                    
+                    <!-- 本周星光榜 -->
+                    <div class="cute-card">
+                        <h3 style="margin-bottom: 15px; color: #2c3e50;">🏆 本周星光榜（前5名）</h3>
+                        <div v-for="(student, index) in topStudents" :key="student.id" 
+                             style="display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid #f0f0f0;">
+                            <div style="width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 12px;">
+                                {{ index + 1 }}
+                            </div>
+                            <div style="flex: 1;">
+                                <div style="font-weight: bold;">{{ student.name }}</div>
+                                <div style="font-size: 12px; color: #6c757d;">{{ student.levelName }}</div>
+                            </div>
+                            <div style="color: #ffc107; font-weight: bold;">
+                                {{ student.stars }}⭐
+                            </div>
+                        </div>
+                        <div v-if="topStudents.length === 0" style="text-align: center; color: #6c757d; padding: 20px;">
+                            暂无数据
+                        </div>
+                    </div>
+                    
+                    <!-- 小组PK -->
+                    <div class="cute-card">
+                        <h3 style="margin-bottom: 15px; color: #2c3e50;">⚔️ 小组探险队PK</h3>
+                        <div v-for="team in teamScores" :key="team.name" 
+                             style="margin-bottom: 15px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <div style="font-weight: bold;">
+                                    <span class="team-badge" :class="'team-' + team.id">{{ team.name }}</span>
+                                </div>
+                                <div style="color: #ffc107; font-weight: bold;">{{ team.score }}⭐</div>
+                            </div>
+                            <div style="background: #f0f0f0; height: 8px; border-radius: 4px; overflow: hidden;">
+                                <div 
+                                    style="height: 100%; border-radius: 4px; transition: width 0.3s;"
+                                    :style="{ 
+                                        width: (team.score / maxTeamScore * 100) + '%',
+                                        background: team.color 
+                                    }"
+                                ></div>
+                            </div>
+                        </div>
+                        
+                        <div v-if="winningTeam" style="background: #fff3cd; padding: 15px; border-radius: 10px; text-align: center;">
+                            <div style="font-weight: bold; color: #856404; margin-bottom: 5px;">
+                                🎉 今日获胜队伍
+                            </div>
+                            <div style="color: #856404;">
+                                {{ winningTeam.name }} 全队每人额外+1星！
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 最新进化播报 -->
+                    <div class="cute-card">
+                        <h3 style="margin-bottom: 15px; color: #2c3e50;">🎊 最新进化播报</h3>
+                        <div v-for="evolution in recentEvolutions.slice(0, 3)" :key="evolution.id"
+                             style="padding: 10px; margin-bottom: 8px; background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%); border-radius: 10px;">
+                            <div style="font-weight: bold; color: #2c3e50;">
+                                🎉 {{ evolution.studentName }} 进化成【{{ evolution.newLevel }}】啦！
+                            </div>
+                            <div style="font-size: 12px; color: #6c757d; margin-top: 5px;">
+                                {{ formatTime(evolution.timestamp) }}
+                            </div>
+                        </div>
+                        <div v-if="recentEvolutions.length === 0" style="text-align: center; color: #6c757d; padding: 20px;">
+                            暂无进化记录
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 设置页面 -->
+                <div v-if="currentPage === 'settings'">
+                    <h2 class="page-title">⚙️ 设置与数据管理</h2>
+                    
+                    <div class="cute-card">
+                        <h3 style="margin-bottom: 15px; color: #2c3e50;">🏫 班级管理</h3>
+                        <van-cell-group>
+                            <van-cell title="班级名称" :value="className" is-link @click="editClassName" />
+                            <van-cell title="当前版本" :value="isPro ? '专业版' : '演示版'" />
+                            <van-cell title="队员数量" :value="students.length + '/25'" />
+                        </van-cell-group>
+                    </div>
+                    
+                    <div class="cute-card">
+                        <h3 style="margin-bottom: 15px; color: #2c3e50;">📊 数据管理</h3>
+                        <van-button 
+                            type="primary" 
+                            block 
+                            class="cute-btn"
+                            @click="exportData"
+                            style="margin-bottom: 10px;"
+                        >
+                            📥 导出数据(CSV)
+                        </van-button>
+                        
+                        <van-button 
+                            type="warning" 
+                            block 
+                            class="cute-btn"
+                            @click="clearAllData"
+                        >
+                            🗑️ 清空所有数据
+                        </van-button>
+                    </div>
+                    
+                    <div class="cute-card">
+                        <h3 style="margin-bottom: 15px; color: #2c3e50;">💎 升级专业版</h3>
+                        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+                            <div style="font-weight: bold; margin-bottom: 8px;">专业版功能：</div>
+                            <div style="font-size: 14px; line-height: 1.6;">
+                                • 无限队员数量<br>
+                                • 多班级管理<br>
+                                • 全部萌宠形象<br>
+                                • 无水印显示<br>
+                                • 完整报表导出
+                            </div>
+                        </div>
+                        <van-button 
+                            type="danger" 
+                            block 
+                            class="cute-btn"
+                            @click="upgradeToPro"
+                        >
+                            💎 升级专业版 (¥39.9/学期)
+                        </van-button>
+                    </div>
+                    
+                    <div class="cute-card">
+                        <h3 style="margin-bottom: 15px; color: #2c3e50;">ℹ️ 关于</h3>
+                        <div style="font-size: 14px; color: #6c757d; line-height: 1.6;">
+                            <div>版本：v1.0.0</div>
+                            <div>开发：成长老周</div>
+                            <div>理念：只奖励、不扣分、全正向激励</div>
+                            <div style="margin-top: 10px;">让每个孩子都闪闪发光 ✨</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 底部导航 -->
+            <div v-if="currentPage !== 'login'" class="nav-bar">
+                <div class="nav-items">
+                    <div class="nav-item" :class="{ active: currentPage === 'home' }" @click="currentPage = 'home'">
+                        <div class="nav-icon">🏠</div>
+                        <div class="nav-text">首页</div>
+                    </div>
+                    <div class="nav-item" :class="{ active: currentPage === 'students' }" @click="currentPage = 'students'">
+                        <div class="nav-icon">🦁</div>
+                        <div class="nav-text">队员</div>
+                    </div>
+                    <div class="nav-item" :class="{ active: currentPage === 'checkin' }" @click="currentPage = 'checkin'">
+                        <div class="nav-icon">⭐</div>
+                        <div class="nav-text">加星</div>
+                    </div>
+                    <div class="nav-item" :class="{ active: currentPage === 'comments' }" @click="currentPage = 'comments'">
+                        <div class="nav-icon">💬</div>
+                        <div class="nav-text">评语</div>
+                    </div>
+                    <div class="nav-item" :class="{ active: currentPage === 'dashboard' }" @click="currentPage = 'dashboard'">
+                        <div class="nav-icon">📊</div>
+                        <div class="nav-text">看板</div>
+                    </div>
+                    <div class="nav-item" :class="{ active: currentPage === 'settings' }" @click="currentPage = 'settings'">
+                        <div class="nav-icon">⚙️</div>
+                        <div class="nav-text">设置</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 弹窗组件 -->
+            <!-- 添加学生弹窗 -->
+            <van-popup v-model:show="showAddStudent" position="bottom" round>
+                <div style="padding: 20px;">
+                    <h3 style="margin-bottom: 15px; text-align: center;">➕ 添加新队员</h3>
+                    <van-field
+                        v-model="newStudentName"
+                        label="姓名"
+                        placeholder="请输入幼儿姓名"
+                    />
+                    <van-button 
+                        type="primary" 
+                        block 
+                        class="cute-btn"
+                        @click="addStudent"
+                        :disabled="!newStudentName"
+                        style="margin-top: 15px;"
+                    >
+                        确认添加
+                    </van-button>
+                </div>
+            </van-popup>
+            
+            <!-- 批量导入弹窗 -->
+            <van-popup v-model:show="showBatchImport" position="bottom" round>
+                <div style="padding: 20px;">
+                    <h3 style="margin-bottom: 15px; text-align: center;">📋 批量导入名单</h3>
+                    <van-field
+                        v-model="batchImportText"
+                        type="textarea"
+                        rows="5"
+                        label="名单"
+                        placeholder="每行一个姓名，例如：&#10;小明&#10;小红&#10;小刚"
+                    />
+                    <van-button 
+                        type="primary" 
+                        block 
+                        class="cute-btn"
+                        @click="batchImportStudents"
+                        :disabled="!batchImportText"
+                        style="margin-top: 15px;"
+                    >
+                        批量导入
+                    </van-button>
+                </div>
+            </van-popup>
+            
+            <!-- 学生选择器弹窗 -->
+            <van-popup v-model:show="showStudentPicker" position="bottom" round>
+                <van-picker
+                    :columns="studentOptions"
+                    @confirm="onStudentConfirm"
+                    @cancel="showStudentPicker = false"
+                />
+            </van-popup>
+            
+            <!-- 评语学生选择器弹窗 -->
+            <van-popup v-model:show="showCommentStudentPicker" position="bottom" round>
+                <van-picker
+                    :columns="studentOptions"
+                    @confirm="onCommentStudentConfirm"
+                    @cancel="showCommentStudentPicker = false"
+                />
+            </van-popup>
+            
+            <!-- 评语行为选择器弹窗 -->
+            <van-popup v-model:show="showCommentBehaviorPicker" position="bottom" round>
+                <van-picker
+                    :columns="behaviorOptions"
+                    @confirm="onCommentBehaviorConfirm"
+                    @cancel="showCommentBehaviorPicker = false"
+                />
+            </van-popup>
+            
+            <!-- 升级提示弹窗 -->
+            <van-popup v-model:show="showUpgradeTip" position="center" round>
+                <div style="padding: 20px; text-align: center;">
+                    <div style="font-size: 50px; margin-bottom: 15px;">💎</div>
+                    <h3 style="margin-bottom: 10px;">升级专业版</h3>
+                    <p style="color: #6c757d; margin-bottom: 20px;">解锁无限人数、多班级管理等高级功能</p>
+                    <van-button 
+                        type="danger" 
+                        block 
+                        class="cute-btn"
+                        @click="upgradeToPro"
+                        style="margin-bottom: 10px;"
+                    >
+                        立即升级 (¥39.9/学期)
+                    </van-button>
+                    <van-button 
+                        type="default" 
+                        block 
+                        class="cute-btn"
+                        @click="showUpgradeTip = false"
+                    >
+                        稍后再说
+                    </van-button>
+                </div>
+            </van-popup>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, computed, onMounted, watch } = Vue;
+        
+        createApp({
+            setup() {
+                // 基础状态
+                const currentPage = ref('login');
+                const isPro = ref(false);
+                const className = ref('大一班');
+                const showLogin = ref(false);
+                const showUpgradeTip = ref(false);
+                
+                // 学生相关
+                const students = ref([]);
+                const newStudentName = ref('');
+                const showAddStudent = ref(false);
+                const showBatchImport = ref(false);
+                const batchImportText = ref('');
+                const showStudentPicker = ref(false);
+                const selectedStudent = ref(null);
+                const selectedStudentName = ref('');
+                
+                // 加星相关
+                const behaviors = ref([
+                    '乖乖洗手', '自己穿鞋', '轻声问好', '安静午睡', 
+                    '整理玩具', '分享食物', '帮助同学', '认真听讲',
+                    '积极发言', '爱护公物', '排队整齐', '节约用水'
+                ]);
+                const selectedBehavior = ref('');
+                const recentRecords = ref([]);
+                
+                // 评语相关
+                const commentStudent = ref(null);
+                const commentStudentName = ref('');
+                const commentBehavior = ref('');
+                const showCommentStudentPicker = ref(false);
+                const showCommentBehaviorPicker = ref(false);
+                const generatedComment = ref('');
+                
+                // 数据相关
+                const starRecords = ref([]);
+                const evolutions = ref([]);
+                
+                // 预设数据
+                const presetData = {
+                    slogans: [
+                        '今天也要闪闪发光呀！✨',
+                        '每个小朋友都是小太阳！☀️',
+                        '一起加油，天天向上！💪',
+                        '快乐成长，幸福童年！🌈',
+                        '小手拉大手，一起向前走！🤝'
+                    ],
+                    tasks: [
+                        ['乖乖洗手', '自己穿鞋', '轻声问好'],
+                        ['安静午睡', '整理玩具', '分享食物'],
+                        ['帮助同学', '认真听讲', '积极发言'],
+                        ['爱护公物', '排队整齐', '节约用水']
+                    ],
+                    games: [
+                        { name: '木头人探险版', description: '老师说"探险开始"，小朋友们可以动；老师说"宝藏出现"，所有人要变成木头人不动哦！' },
+                        { name: '小动物模仿操', description: '模仿小兔子跳、小熊走路、小鸟飞翔，看谁模仿得最像！' },
+                        { name: '颜色大搜寻', description: '在教室里找到红色的物品、蓝色的物品，看谁找得又快又准！' },
+                        { name: '声音猜猜猜', description: '老师发出各种声音，小朋友们猜猜是什么动物或物品发出的声音。' }
+                    ],
+                    gentleGuidances: [
+                        '宝贝，玩具是大家的哦，我们可以轮流玩，这样每个小朋友都能开心～',
+                        '没关系，老师知道你很难过，我们来深呼吸，慢慢平静下来好吗？',
+                        '小朋友之间要互相谦让，你这样做会让其他小朋友伤心的，我们换个方式好不好？',
+                        '老师相信你可以做得很好，我们一起试试看，好吗？',
+                        '每个人都有犯错的时候，重要的是我们要学会改正，老师会一直帮助你。'
+                    ],
+                    homeSchoolMessages: [
+                        '今天宝贝在幼儿园表现很棒，主动帮助了同学，真是有爱心的好孩子！',
+                        '宝贝今天学会了新本领，回家后可以让他展示给您看哦～',
+                        '今天宝贝和小朋友相处得很好，分享了自己的玩具，值得表扬！',
+                        '宝贝今天在课堂上很专注，听故事特别认真，进步很大！',
+                        '今天宝贝主动整理了玩具，养成了好习惯，继续加油哦！'
+                    ],
+                    commentTemplates: [
+                        '{name}今天主动分享玩具，是超有爱的{level}，继续闪闪发光呀～',
+                        '{name}午睡安安静静，{level}为你点赞哦！',
+                        '{name}自己整理小椅子，{level}都在为你鼓掌～',
+                        '{name}今天帮助了同学，真是个热心的{level}！',
+                        '{name}上课认真听讲，{level}的智慧之光越来越亮啦！',
+                        '{name}排队整整齐齐，{level}的纪律性真棒！',
+                        '{name}主动问好有礼貌，{level}的社交能力满分！',
+                        '{name}节约用水好习惯，{level}的环保意识很强哦！'
+                    ],
+                    petLevels: [
+                        { min: 0, max: 8, name: '蛋壳宝宝', emoji: '🥚', color: '#f0f0f0' },
+                        { min: 9, max: 18, name: '萌芽精灵', emoji: '🌱', color: '#90ee90' },
+                        { min: 19, max: 35, name: '花朵信使', emoji: '🌸', color: '#ffb6c1' },
+                        { min: 36, max: 59, name: '果树小仙', emoji: '🍎', color: '#ffa500' },
+                        { min: 60, max: Infinity, name: '海岛守护者', emoji: '🦁', color: '#ffd700' }
+                    ],
+                    guardianPets: ['🦁', '🐰', '🐼', '🐨', '🐯', '🐷', '🐸', '🐙']
+                };
+                
+                // 计算属性
+                const currentDate = computed(() => {
+                    const now = new Date();
+                    return `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`;
+                });
+                
+                const dailySlogan = computed(() => {
+                    const today = new Date().getDate();
+                    return presetData.slogans[today % presetData.slogans.length];
+                });
+                
+                const dailyTasks = computed(() => {
+                    const today = new Date().getDate();
+                    return presetData.tasks[today % presetData.tasks.length];
+                });
+                
+                const currentGame = computed(() => {
+                    const today = new Date().getDate();
+                    return presetData.games[today % presetData.games.length];
+                });
+                
+                const gentleGuidance = computed(() => {
+                    const today = new Date().getDate();
+                    return presetData.gentleGuidances[today % presetData.gentleGuidances.length];
+                });
+                
+                const homeSchoolMessage = computed(() => {
+                    const today = new Date().getDate();
+                    return presetData.homeSchoolMessages[today % presetData.homeSchoolMessages.length];
+                });
+                
+                const commentTemplates = computed(() => presetData.commentTemplates);
+                
+                const islandProgress = computed(() => {
+                    if (students.value.length === 0) return 0;
+                    const totalStars = students.value.reduce((sum, s) => sum + s.stars, 0);
+                    const targetStars = students.value.length * 50; // 每人50星为目标
+                    return Math.min(Math.round((totalStars / targetStars) * 100), 100);
+                });
+                
+                const islandStage = computed(() => {
+                    const progress = islandProgress.value;
+                    if (progress < 30) return '🏖️ 沙滩阶段';
+                    if (progress < 60) return '🌿 长出小草';
+                    if (progress < 100) return '🌳 出现小树';
+                    return '🏝️ 海岛建成！解锁班级宝藏！';
+                });
+                
+                const sortedStudents = computed(() => {
+                    return [...students.value].sort((a, b) => b.stars - a.stars);
+                });
+                
+                const studentOptions = computed(() => {
+                    return students.value.map(s => ({
+                        text: s.name,
+                        value: s.id
+                    }));
+                });
+                
+                const behaviorOptions = computed(() => {
+                    return behaviors.value.map(b => ({
+                        text: b,
+                        value: b
+                    }));
+                });
+                
+                const todayTotalStars = computed(() => {
+                    const today = new Date().toDateString();
+                    return starRecords.value.filter(r => 
+                        new Date(r.timestamp).toDateString() === today
+                    ).length;
+                });
+                
+                const topStudents = computed(() => {
+                    return [...students.value]
+                        .sort((a, b) => b.stars - a.stars)
+                        .slice(0, 5);
+                });
+                
+                const teamScores = computed(() => {
+                    const teams = {
+                        sun: { name: '太阳队 ☀️', score: 0, color: '#ffc107', id: 'sun' },
+                        moon: { name: '月亮队 🌙', score: 0, color: '#4facfe', id: 'moon' },
+                        star: { name: '星星队 ✨', score: 0, color: '#ff6b6b', id: 'star' }
+                    };
+                    
+                    students.value.forEach(student => {
+                        if (teams[student.team]) {
+                            teams[student.team].score += student.stars;
+                        }
+                    });
+                    
+                    return Object.values(teams);
+                });
+                
+                const maxTeamScore = computed(() => {
+                    return Math.max(...teamScores.value.map(t => t.score), 1);
+                });
+                
+                const winningTeam = computed(() => {
+                    const teams = teamScores.value;
+                    const maxScore = Math.max(...teams.map(t => t.score));
+                    if (maxScore === 0) return null;
+                    return teams.find(t => t.score === maxScore);
+                });
+                
+                const recentEvolutions = computed(() => {
+                    return [...evolutions.value].sort((a, b) => b.timestamp - a.timestamp);
+                });
+                
+                // 方法
+                const enterDemo = () => {
+                    currentPage.value = 'home';
+                    loadDemoData();
+                };
+                
+                const loadDemoData = () => {
+                    // 加载示例数据
+                    const demoStudents = [
+                        { id: 1, name: '小明', stars: 15, team: 'sun', petEmoji: '🌱', levelName: '萌芽精灵', justLeveledUp: false },
+                        { id: 2, name: '小红', stars: 23, team: 'moon', petEmoji: '🌸', levelName: '花朵信使', justLeveledUp: false },
+                        { id: 3, name: '小刚', stars: 8, team: 'star', petEmoji: '🥚', levelName: '蛋壳宝宝', justLeveledUp: false },
+                        { id: 4, name: '小丽', stars: 42, team: 'sun', petEmoji: '🍎', levelName: '果树小仙', justLeveledUp: false },
+                        { id: 5, name: '小强', stars: 67, team: 'moon', petEmoji: '🦁', levelName: '海岛守护者', justLeveledUp: false }
+                    ];
+                    
+                    students.value = demoStudents;
+                    
+                    // 添加一些示例记录
+                    recentRecords.value = [
+                        { id: 1, studentName: '小明', behavior: '乖乖洗手', timestamp: Date.now() - 3600000 },
+                        { id: 2, studentName: '小红', behavior: '帮助同学', timestamp: Date.now() - 7200000 },
+                        { id: 3, studentName: '小刚', behavior: '整理玩具', timestamp: Date.now() - 10800000 }
+                    ];
+                };
+                
+                const addStudent = () => {
+                    if (!newStudentName.value.trim()) return;
+                    
+                    if (!isPro.value && students.value.length >= 25) {
+                        showUpgradeTip.value = true;
+                        return;
+                    }
+                    
+                    const teams = ['sun', 'moon', 'star'];
+                    const randomTeam = teams[Math.floor(Math.random() * teams.length)];
+                    const newStudent = {
+                        id: Date.now(),
+                        name: newStudentName.value.trim(),
+                        stars: 0,
+                        team: randomTeam,
+                        petEmoji: '🥚',
+                        levelName: '蛋壳宝宝',
+                        justLeveledUp: false
+                    };
+                    
+                    students.value.push(newStudent);
+                    newStudentName.value = '';
+                    showAddStudent.value = false;
+                    
+                    saveData();
+                    showToast('添加成功！欢迎新队员～');
+                };
+                
+                const batchImportStudents = () => {
+                    if (!batchImportText.value.trim()) return;
+                    
+                    const names = batchImportText.value.trim().split('\n').filter(name => name.trim());
+                    let addedCount = 0;
+                    
+                    names.forEach(name => {
+                        if (isPro.value || students.value.length < 25) {
+                            const teams = ['sun', 'moon', 'star'];
+                            const randomTeam = teams[Math.floor(Math.random() * teams.length)];
+                            const newStudent = {
+                                id: Date.now() + Math.random(),
+                                name: name.trim(),
+                                stars: 0,
+                                team: randomTeam,
+                                petEmoji: '🥚',
+                                levelName: '蛋壳宝宝',
+                                justLeveledUp: false
+                            };
+                            students.value.push(newStudent);
+                            addedCount++;
+                        }
+                    });
+                    
+                    batchImportText.value = '';
+                    showBatchImport.value = false;
+                    saveData();
+                    showToast(`成功导入${addedCount}名队员！`);
+                };
+                
+                const quickAddStar = (student) => {
+                    addStarToStudent(student, '快速加星');
+                };
+                
+                const addSingleStar = () => {
+                    if (!selectedStudent.value || !selectedBehavior.value) return;
+                    
+                    addStarToStudent(selectedStudent.value, selectedBehavior.value);
+                    selectedStudent.value = null;
+                    selectedStudentName.value = '';
+                    selectedBehavior.value = '';
+                };
+                
+                const addAllStars = () => {
+                    students.value.forEach(student => {
+                        addStarToStudent(student, '全班庆祝');
+                    });
+                    showToast('🎉 全班每人+1星！太棒啦！');
+                    createCelebrationEffect();
+                };
+                
+                const addStarToStudent = (student, behavior) => {
+                    student.stars += 1;
+                    
+                    // 检查是否升级
+                    const oldLevel = getPetLevel(student.stars - 1);
+                    const newLevel = getPetLevel(student.stars);
+                    
+                    if (oldLevel.name !== newLevel.name) {
+                        // 升级了！
+                        student.levelName = newLevel.name;
+                        student.petEmoji = newLevel.emoji;
+                        student.justLeveledUp = true;
+                        
+                        // 如果是海岛守护者，随机选择守护萌宠
+                        if (newLevel.name === '海岛守护者') {
+                            const guardians = presetData.guardianPets;
+                            student.petEmoji = guardians[Math.floor(Math.random() * guardians.length)];
+                        }
+                        
+                        // 记录进化
+                        evolutions.value.push({
+                            id: Date.now(),
+                            studentName: student.name,
+                            newLevel: newLevel.name,
+                            timestamp: Date.now()
+                        });
+                        
+                        setTimeout(() => {
+                            student.justLeveledUp = false;
+                        }, 2000);
+                        
+                        showToast(`🎉 ${student.name}进化成【${newLevel.name}】啦！`);
+                    }
+                    
+                    // 添加记录
+                    recentRecords.value.unshift({
+                        id: Date.now(),
+                        studentName: student.name,
+                        behavior: behavior,
+                        timestamp: Date.now()
+                    });
+                    
+                    starRecords.value.push({
+                        id: Date.now(),
+                        studentId: student.id,
+                        studentName: student.name,
+                        behavior: behavior,
+                        timestamp: Date.now()
+                    });
+                    
+                    // 保持记录数量
+                    if (recentRecords.value.length > 50) {
+                        recentRecords.value = recentRecords.value.slice(0, 50);
+                    }
+                    
+                    saveData();
+                    createStarAnimation();
+                };
+                
+                const getPetLevel = (stars) => {
+                    for (let level of presetData.petLevels) {
+                        if (stars >= level.min && stars <= level.max) {
+                            return level;
+                        }
+                    }
+                    return presetData.petLevels[0];
+                };
+                
+                const getTeamName = (team) => {
+                    const teamNames = {
+                        sun: '太阳队',
+                        moon: '月亮队',
+                        star: '星星队'
+                    };
+                    return teamNames[team] || '未知队伍';
+                };
+                
+                const onStudentConfirm = ({ selectedOptions }) => {
+                    selectedStudent.value = students.value.find(s => s.id === selectedOptions[0].value);
+                    selectedStudentName.value = selectedOptions[0].text;
+                    showStudentPicker.value = false;
+                };
+                
+                const onCommentStudentConfirm = ({ selectedOptions }) => {
+                    commentStudent.value = students.value.find(s => s.id === selectedOptions[0].value);
+                    commentStudentName.value = selectedOptions[0].text;
+                    showCommentStudentPicker.value = false;
+                };
+                
+                const onCommentBehaviorConfirm = ({ selectedOptions }) => {
+                    commentBehavior.value = selectedOptions[0].text;
+                    showCommentBehaviorPicker.value = false;
+                };
+                
+                const generateAIGComment = () => {
+                    if (!commentStudent.value || !commentBehavior.value) return;
+                    
+                    const templates = presetData.commentTemplates;
+                    const template = templates[Math.floor(Math.random() * templates.length)];
+                    
+                    generatedComment.value = template
+                        .replace('{name}', commentStudent.value.name)
+                        .replace('{level}', commentStudent.value.levelName);
+                };
+                
+                const regenerateComment = () => {
+                    generateAIGComment();
+                };
+                
+                const generateComment = () => {
+                    currentPage.value = 'comments';
+                };
+                
+                const refreshGame = () => {
+                    // 随机切换游戏
+                    showToast('已切换到新游戏！');
+                };
+                
+                const copyToClipboard = (text) => {
+                    if (navigator.clipboard) {
+                        navigator.clipboard.writeText(text).then(() => {
+                            showToast('复制成功！');
+                        });
+                    } else {
+                        // 降级方案
+                        const textarea = document.createElement('textarea');
+                        textarea.value = text;
+                        document.body.appendChild(textarea);
+                        textarea.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(textarea);
+                        showToast('复制成功！');
+                    }
+                };
+                
+                const createStarAnimation = () => {
+                    const star = document.createElement('div');
+                    star.className = 'star-animation';
+                    star.textContent = '⭐';
+                    star.style.left = Math.random() * window.innerWidth + 'px';
+                    star.style.top = window.innerHeight + 'px';
+                    document.body.appendChild(star);
+                    
+                    setTimeout(() => {
+                        document.body.removeChild(star);
+                    }, 1500);
+                };
+                
+                const createCelebrationEffect = () => {
+                    for (let i = 0; i < 10; i++) {
+                        setTimeout(() => {
+                            createStarAnimation();
+                        }, i * 100);
+                    }
+                };
+                
+                const formatTime = (timestamp) => {
+                    const date = new Date(timestamp);
+                    const hours = date.getHours().toString().padStart(2, '0');
+                    const minutes = date.getMinutes().toString().padStart(2, '0');
+                    return `${hours}:${minutes}`;
+                };
+                
+                const editClassName = () => {
+                    vant.Dialog.prompt({
+                        title: '修改班级名称',
+                        message: '请输入新的班级名称',
+                        inputValue: className.value,
+                        confirmButtonText: '确认',
+                        cancelButtonText: '取消'
+                    }).then(({ value }) => {
+                        if (value) {
+                            className.value = value;
+                            saveData();
+                        }
+                    });
+                };
+                
+                const exportData = () => {
+                    if (!isPro.value) {
+                        showUpgradeTip.value = true;
+                        return;
+                    }
+                    
+                    // 生成CSV数据
+                    let csv = '姓名,星星数,等级,队伍\n';
+                    students.value.forEach(student => {
+                        csv += `${student.name},${student.stars},${student.levelName},${getTeamName(student.team)}\n`;
+                    });
+                    
+                    // 下载文件
+                    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = `班级数据_${currentDate.value}.csv`;
+                    link.click();
+                    
+                    showToast('数据导出成功！');
+                };
+                
+                const clearAllData = () => {
+                    vant.Dialog.confirm({
+                        title: '确认清空',
+                        message: '确定要清空所有数据吗？此操作不可恢复！'
+                    }).then(() => {
+                        students.value = [];
+                        starRecords.value = [];
+                        evolutions.value = [];
+                        recentRecords.value = [];
+                        localStorage.removeItem('explorationIslandData');
+                        showToast('数据已清空');
+                    });
+                };
+                
+                const upgradeToPro = () => {
+                    // 模拟升级
+                    isPro.value = true;
+                    showUpgradeTip.value = false;
+                    showToast('🎉 恭喜升级专业版！');
+                    saveData();
+                };
+                
+                const showToast = (message) => {
+                    vant.Toast.success({
+                        message: message,
+                        duration: 2000
+                    });
+                };
+                
+                const saveData = () => {
+                    const data = {
+                        students: students.value,
+                        starRecords: starRecords.value,
+                        evolutions: evolutions.value,
+                        recentRecords: recentRecords.value,
+                        className: className.value,
+                        isPro: isPro.value
+                    };
+                    localStorage.setItem('explorationIslandData', JSON.stringify(data));
+                };
+                
+                const loadData = () => {
+                    const saved = localStorage.getItem('explorationIslandData');
+                    if (saved) {
+                        try {
+                            const data = JSON.parse(saved);
+                            students.value = data.students || [];
+                            starRecords.value = data.starRecords || [];
+                            evolutions.value = data.evolutions || [];
+                            recentRecords.value = data.recentRecords || [];
+                            className.value = data.className || '大一班';
+                            isPro.value = data.isPro || false;
+                        } catch (e) {
+                            console.error('数据加载失败:', e);
+                        }
+                    }
+                };
+                
+                // 生命周期
+                onMounted(() => {
+                    loadData();
+                    
+                    // 注册Vant组件
+                    const app = document.getElementById('app');
+                    if (app) {
+                        app.use(vant);
+                    }
+                });
+                
+                return {
+                    // 状态
+                    currentPage,
+                    isPro,
+                    className,
+                    showLogin,
+                    showUpgradeTip,
+                    
+                    // 学生相关
+                    students,
+                    newStudentName,
+                    showAddStudent,
+                    showBatchImport,
+                    batchImportText,
+                    showStudentPicker,
+                    selectedStudent,
+                    selectedStudentName,
+                    
+                    // 加星相关
+                    behaviors,
+                    selectedBehavior,
+                    recentRecords,
+                    
+                    // 评语相关
+                    commentStudent,
+                    commentStudentName,
+                    commentBehavior,
+                    showCommentStudentPicker,
+                    showCommentBehaviorPicker,
+                    generatedComment,
+                    
+                    // 计算属性
+                    currentDate,
+                    dailySlogan,
+                    dailyTasks,
+                    currentGame,
+                    gentleGuidance,
+                    homeSchoolMessage,
+                    commentTemplates,
+                    islandProgress,
+                    islandStage,
+                    sortedStudents,
+                    studentOptions,
+                    behaviorOptions,
+                    todayTotalStars,
+                    topStudents,
+                    teamScores,
+                    maxTeamScore,
+                    winningTeam,
+                    recentEvolutions,
+                    
+                    // 方法
+                    enterDemo,
+                    addStudent,
+                    batchImportStudents,
+                    quickAddStar,
+                    addSingleStar,
+                    addAllStars,
+                    getTeamName,
+                    onStudentConfirm,
+                    onCommentStudentConfirm,
+                    onCommentBehaviorConfirm,
+                    generateAIGComment,
+                    regenerateComment,
+                    generateComment,
+                    refreshGame,
+                    copyToClipboard,
+                    formatTime,
+                    editClassName,
+                    exportData,
+                    clearAllData,
+                    upgradeToPro
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
